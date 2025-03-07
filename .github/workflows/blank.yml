@@ -24,8 +24,5 @@ jobs:
           }
         }
 
-    - name: Install autossh (to keep the connection alive)
-      run: choco install autossh -y
-
     - name: Start Serveo Tunnel
-      run: autossh -M 0 -N -T -R 3389:localhost:3389 serveo.net
+      run: ssh -o ServerAliveInterval=60 -o ExitOnForwardFailure=yes -N -T -R 3389:localhost:3389 serveo.net
