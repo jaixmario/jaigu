@@ -4,46 +4,43 @@ on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: windows-latest  # Updated to use the latest Windows runner
+    runs-on: windows-2025
 
     steps:
-    - name: Download
+    - name: Download Ngrok
       run: Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip -OutFile ngrok.zip
-    - name: Extract
+    - name: Extract Ngrok
       run: Expand-Archive ngrok.zip
-    - name: Auth
+    - name: Authenticate Ngrok
       run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
       env:
         NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-    - name: Enable TS
-      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
-    - run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-    - run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-    - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
-    - name: Create Tunnel
-      run: Start-Process -NoNewWindow -FilePath .\ngrok\ngrok.exe -ArgumentList "tcp 3389"
-    - name: Get Ngrok URL
-      id: ngrok-url
+    - name: Enable RDP
       run: |
-        $retryCount = 0
-        $maxRetries = 10
-        $url = $null
-        do {
-          Start-Sleep -Seconds 3
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+    - name: Set Password
+      run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
+    - name: Start Ngrok Tunnel
+      run: Start-Process -NoNewWindow -FilePath .\ngrok\ngrok.exe -ArgumentList "tcp 3389" -RedirectStandardOutput ngrok.log
+
+    - name: Wait for Ngrok
+      run: |
+        $max_retries = 10
+        $counter = 0
+        while ($counter -lt $max_retries) {
+          Start-Sleep -Seconds 5
           try {
-            $response = Invoke-WebRequest -Uri "http://localhost:4040/api/tunnels" -UseBasicParsing | ConvertFrom-Json
-            $url = $response.tunnels[0].public_url
-            Write-Host "Ngrok URL: $url"
-            echo "NGROK_URL=$url" >> $env:GITHUB_ENV
-            break
+            $response = Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:4040/api/tunnels
+            if ($response.StatusCode -eq 200) { break }
           } catch {
-            Write-Host "Retrying... ($retryCount of $maxRetries)"
-            $retryCount++
+            Write-Host "Ngrok not ready yet. Retrying ($counter/$max_retries)..."
           }
-        } while ($retryCount -lt $maxRetries)
-        if (-not $url) {
-          Write-Host "Failed to retrieve Ngrok URL"
-          exit 1
+          $counter++
         }
-    - name: Keep alive to maintain tunnel
-      run: while ($true) { Start-Sleep -Seconds 3600 }
+
+    - name: Display Ngrok URL
+      run: |
+        $ngrokUrl = (Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:4040/api/tunnels | ConvertFrom-Json).tunnels[0].public_url
+        echo "Ngrok URL: $ngrokUrl"
