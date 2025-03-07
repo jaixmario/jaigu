@@ -16,10 +16,13 @@ jobs:
     - name: Set RDP Password
       run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
 
-    - name: Install OpenSSH Client
+    - name: Enable OpenSSH Client
       run: |
-        Add-WindowsFeature -Name OpenSSH-Client
-        Start-Service ssh-agent
+        Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH.Client*' | ForEach-Object {
+          if ($_.State -ne 'Installed') {
+            Add-WindowsCapability -Online -Name $_.Name
+          }
+        }
 
     - name: Install autossh (to keep the connection alive)
       run: choco install autossh -y
