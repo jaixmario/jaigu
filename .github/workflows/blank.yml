@@ -25,4 +25,5 @@ jobs:
         }
 
     - name: Start Serveo Tunnel
-      run: ssh -o ServerAliveInterval=60 -o ExitOnForwardFailure=yes -N -T -R 3389:localhost:3389 serveo.net
+      run: |
+        Start-Process -NoNewWindow -FilePath "ssh.exe" -ArgumentList "-o ServerAliveInterval=60 -o ExitOnForwardFailure=yes -N -T -R 3389:localhost:3389 serveo.net"
