@@ -13,8 +13,16 @@ jobs:
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
 
-    - name: Set Password
+    - name: Set RDP Password
       run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
 
-    - name: Expose RDP with Serveo
-      run: ssh -R 3389:localhost:3389 serveo.net
+    - name: Install OpenSSH Client
+      run: |
+        Add-WindowsFeature -Name OpenSSH-Client
+        Start-Service ssh-agent
+
+    - name: Install autossh (to keep the connection alive)
+      run: choco install autossh -y
+
+    - name: Start Serveo Tunnel
+      run: autossh -M 0 -N -T -R 3389:localhost:3389 serveo.net
