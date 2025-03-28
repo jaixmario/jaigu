@@ -4,8 +4,8 @@ on: [push, workflow_dispatch]
 
 jobs:
   build:
-
     runs-on: windows-2025
+    timeout-minutes: 360  # Set job timeout to 6 hours
 
     steps:
     - name: Download
@@ -17,9 +17,23 @@ jobs:
       env:
         NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
     - name: Enable TS
-      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
-    - run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-    - run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-    - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
-    - name: Create Tunnel
-      run: .\ngrok\ngrok.exe tcp 3389
+      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+    - name: Enable Firewall Rule
+      run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+    - name: Set User Authentication
+      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+    - name: Set Password
+      run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
+    - name: Apply ThemeA
+      run: Start-Process -FilePath "C:\Windows\Resources\Themes\themeA.theme"
+      
+    - name: Change Time Zone to IST (UTC+5:30)
+      run: tzutil /s "India Standard Time"
+      shell: cmd
+          
+    - name: Sleep for 5 hours
+      run: Start-Sleep -Seconds 18000
+      shell: powershell
+      
+    - name: Finalize
+      run: echo "Workflow completed successfully after 5 hours."
