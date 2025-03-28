@@ -8,32 +8,38 @@ jobs:
     timeout-minutes: 360  # Set job timeout to 6 hours
 
     steps:
-    - name: Download
+    - name: Download ngrok
       run: Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip -OutFile ngrok.zip
-    - name: Extract
+
+    - name: Extract ngrok
       run: Expand-Archive ngrok.zip
-    - name: Auth
+
+    - name: Authenticate ngrok
       run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
       env:
         NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-    - name: Enable TS
-      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-    - name: Enable Firewall Rule
-      run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-    - name: Set User Authentication
-      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
-    - name: Set Password
-      run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
+
+    - name: Enable Remote Desktop
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+        Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
+      shell: powershell
+
     - name: Apply ThemeA
       run: Start-Process -FilePath "C:\Windows\Resources\Themes\themeA.theme"
-      
+
     - name: Change Time Zone to IST (UTC+5:30)
       run: tzutil /s "India Standard Time"
       shell: cmd
-          
+
+    - name: Start ngrok Tunnel
+      run: .\ngrok\ngrok.exe tcp 3389
+
     - name: Sleep for 5 hours
       run: Start-Sleep -Seconds 18000
       shell: powershell
-      
+
     - name: Finalize
       run: echo "Workflow completed successfully after 5 hours."
