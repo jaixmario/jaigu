@@ -4,7 +4,7 @@ on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-2025
     timeout-minutes: 360  # Set job timeout to 6 hours
 
     steps:
