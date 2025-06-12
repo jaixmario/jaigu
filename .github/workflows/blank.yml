@@ -4,7 +4,7 @@ on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-2025
     timeout-minutes: 360  # Set job timeout to 6 hours
 
     steps:
@@ -26,6 +26,9 @@ jobs:
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
         Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
       shell: powershell
+
+    - name: Apply ThemeA
+      run: Start-Process -FilePath "C:\Windows\Resources\Themes\themeA.theme"
 
     - name: Change Time Zone to IST (UTC+5:30)
       run: tzutil /s "India Standard Time"
