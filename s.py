@@ -12,12 +12,12 @@ NGROK_EXE = os.path.join(NGROK_FOLDER, "ngrok.exe")
 PORT = "3389"
 SAVE_FILE = "ngrok_tcp_url.txt"
 MAX_RETRIES = 10
-WAIT_BETWEEN_RETRIES = 5
+WAIT_BETWEEN_RETRIES = 5  # seconds
 
-# Regex: checks for region (e.g., 2.tcp.us-cal-1.ngrok.io)
-VALID_TCP_URL = re.compile(r"tcp://\d+\.tcp\.[a-z\-]+\d*\.ngrok\.io:\d+")
+# Only allow regional-style ngrok TCP URLs (exclude 0.tcp)
+VALID_TCP_URL = re.compile(r"tcp://(?!0\.).+\.tcp\.[a-z\-]+\d*\.ngrok\.io:\d+")
 
-# Download ngrok if not exists
+# Step 1: Download ngrok if not exists
 if not os.path.exists(NGROK_EXE):
     print("[*] Downloading ngrok...")
     r = requests.get(NGROK_URL)
@@ -28,7 +28,10 @@ if not os.path.exists(NGROK_EXE):
     with zipfile.ZipFile(NGROK_ZIP, 'r') as zip_ref:
         zip_ref.extractall(NGROK_FOLDER)
 
-# Fetch ngrok TCP URL from API
+# Step 2: Kill any old ngrok processes
+subprocess.run("taskkill /f /im ngrok.exe", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+# Step 3: Function to get the TCP URL from ngrok API
 def get_tcp_url():
     try:
         r = requests.get("http://127.0.0.1:4040/api/tunnels")
@@ -37,33 +40,38 @@ def get_tcp_url():
             if tunnel.get("proto") == "tcp":
                 return tunnel.get("public_url")
     except Exception as e:
-        print(f"[!] Error fetching URL: {e}")
+        print(f"[!] Error fetching ngrok URL: {e}")
     return None
 
-# Try launching ngrok up to N times until regional TCP URL found
+# Step 4: Retry loop to get regional TCP URL
 tcp_url = None
 for attempt in range(1, MAX_RETRIES + 1):
     print(f"[*] Attempt {attempt} to start ngrok...")
 
+    # Kill again just in case
+    subprocess.run("taskkill /f /im ngrok.exe", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    # Start ngrok
     ngrok_proc = subprocess.Popen([NGROK_EXE, "tcp", PORT], stdout=subprocess.DEVNULL)
     time.sleep(WAIT_BETWEEN_RETRIES)
 
     tcp_url = get_tcp_url()
 
     if tcp_url and VALID_TCP_URL.match(tcp_url):
-        print(f"[h] Found regional TCP URL: {tcp_url}")
+        print(f"[j] Found regional TCP URL: {tcp_url}")
         with open(SAVE_FILE, "w") as f:
             f.write(tcp_url)
         break
     else:
-        print(f"[h] Invalid TCP URL: {tcp_url}")
+        print(f"[h] Invalid or no TCP URL: {tcp_url}")
         ngrok_proc.terminate()
         time.sleep(2)
 
 if not tcp_url or not VALID_TCP_URL.match(tcp_url):
-    print("[j] Failed to get a valid regional TCP URL after all attempts.")
+    print("[j] Failed to get valid regional ngrok TCP URL after retries.")
     exit(1)
 
 print("[*] Keeping tunnel alive for 5 hours...")
 time.sleep(18000)
+
 print("[✔️] Done.")
