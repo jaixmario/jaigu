@@ -3,7 +3,7 @@ import time
 import requests
 import json
 
-NGROK_PATH = r"ngrok.exe" 
+NGROK_PATH = r"D:\a\jaigu\jaigu\ngrok\ngrok.exe" 
 PORT = "3389"
 SAVE_FILE = "ngrok_tcp_url.txt"
 
