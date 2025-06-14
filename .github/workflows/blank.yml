@@ -35,7 +35,7 @@ jobs:
       shell: cmd
 
     - name: Start ngrok Tunnel
-      run: .\ngrok\ngrok.exe tcp 3389
+      run: python s.py
 
     - name: Sleep for 5 hours
       run: Start-Sleep -Seconds 18000
