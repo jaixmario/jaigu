@@ -40,7 +40,10 @@ jobs:
       
     - name: Checkout repository
       uses: actions/checkout@v3
-
+      
+    - name: Extract ngrok
+      run: Expand-Archive ngrok.zip -DestinationPath ngrok
+      
     - name: Run the web app
       run: pip install requests
       
