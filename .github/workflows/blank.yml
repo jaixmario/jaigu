@@ -11,6 +11,9 @@ jobs:
     - name: Download ngrok
       run: Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip -OutFile ngrok.zip
 
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
     - name: Extract ngrok
       run: Expand-Archive ngrok.zip
 
