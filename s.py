@@ -2,49 +2,35 @@ import subprocess
 import time
 import requests
 import json
-import os
-import signal
 
-DESIRED_SUFFIX = ".tcp.us-cal-1.ngrok.io"
+NGROK_PATH = r".\ngrok\ngrok.exe" 
+PORT = "3389"
+SAVE_FILE = "ngrok_tcp_url.txt"
 
-def start_ngrok():
-    return subprocess.Popen(["ngrok", "tcp", "3389"], stdout=subprocess.DEVNULL)
-
-def stop_ngrok(proc):
-    try:
-        proc.send_signal(signal.SIGINT)
-        proc.wait()
-    except Exception:
-        proc.kill()
-
+ngrok_proc = subprocess.Popen([NGROK_PATH, "tcp", PORT], stdout=subprocess.DEVNULL)
+print("[*] ngrok started... waiting for tunnel to initialize...")
+time.sleep(5) 
 def get_tcp_url():
     try:
-        response = requests.get("http://localhost:4040/api/tunnels")
-        tunnels = response.json().get("tunnels", [])
-        for tunnel in tunnels:
+        response = requests.get("http://127.0.0.1:4040/api/tunnels")
+        data = response.json()
+        for tunnel in data.get("tunnels", []):
             if tunnel["proto"] == "tcp":
                 return tunnel["public_url"]
-    except:
-        pass
-    return None
+    except Exception as e:
+        print(f"[!] Error fetching tunnel: {e}")
+        return None
 
-while True:
-    print("[*] Starting ngrok...")
-    ngrok_proc = start_ngrok()
-    time.sleep(5)
+tcp_url = get_tcp_url()
 
-    print("[*] Checking ngrok tunnel URL...")
-    url = get_tcp_url()
-    if url:
-        print(f"[!] URL assigned: {url}")
-        domain = url.replace("tcp://", "").split(":")[0]
-        if domain.endswith(DESIRED_SUFFIX):
-            print(f"[✅] Matched desired region: {url}")
-            break
-        else:
-            print(f"[❌] Not a us-cal domain, retrying...")
-    else:
-        print("[❌] No tunnel found, retrying...")
+if tcp_url:
+    print(f"[✅] ngrok TCP URL: {tcp_url}")
+    with open(SAVE_FILE, "w") as f:
+        f.write(tcp_url)
+else:
+    print("[❌] Could not retrieve ngrok TCP URL")
 
-    stop_ngrok(ngrok_proc)
-    time.sleep(2)
+print("[*] Sleeping for 5 hours to keep tunnel alive...")
+time.sleep(18000) 
+
+print("[✔️] Done.")
