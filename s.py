@@ -3,7 +3,6 @@ import time
 import requests
 import zipfile
 import os
-import shutil
 import re
 
 NGROK_URL = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip"
@@ -12,11 +11,10 @@ NGROK_FOLDER = "ngrok"
 NGROK_EXE = os.path.join(NGROK_FOLDER, "ngrok.exe")
 PORT = "3389"
 SAVE_FILE = "ngrok_tcp_url.txt"
-AUTH_TOKEN = os.environ.get("NGROK_AUTH_TOKEN")  # GitHub secret
 MAX_RETRIES = 10
 WAIT_BETWEEN_RETRIES = 5
 
-# Regex to ensure region is present (e.g., us-cal-1)
+# Regex: checks for region (e.g., 2.tcp.us-cal-1.ngrok.io)
 VALID_TCP_URL = re.compile(r"tcp://\d+\.tcp\.[a-z\-]+\d*\.ngrok\.io:\d+")
 
 # Download ngrok if not exists
@@ -30,14 +28,7 @@ if not os.path.exists(NGROK_EXE):
     with zipfile.ZipFile(NGROK_ZIP, 'r') as zip_ref:
         zip_ref.extractall(NGROK_FOLDER)
 
-# Authenticate ngrok
-if AUTH_TOKEN:
-    print("[*] Authenticating ngrok...")
-    subprocess.run([NGROK_EXE, "authtoken", AUTH_TOKEN])
-else:
-    print("[!] NGROK_AUTH_TOKEN is not set!")
-    exit(1)
-
+# Fetch ngrok TCP URL from API
 def get_tcp_url():
     try:
         r = requests.get("http://127.0.0.1:4040/api/tunnels")
@@ -49,7 +40,7 @@ def get_tcp_url():
         print(f"[!] Error fetching URL: {e}")
     return None
 
-# Loop until a regional TCP URL is found
+# Try launching ngrok up to N times until regional TCP URL found
 tcp_url = None
 for attempt in range(1, MAX_RETRIES + 1):
     print(f"[*] Attempt {attempt} to start ngrok...")
@@ -60,19 +51,19 @@ for attempt in range(1, MAX_RETRIES + 1):
     tcp_url = get_tcp_url()
 
     if tcp_url and VALID_TCP_URL.match(tcp_url):
-        print(f"[ik] Found regional TCP URL: {tcp_url}")
+        print(f"[h] Found regional TCP URL: {tcp_url}")
         with open(SAVE_FILE, "w") as f:
             f.write(tcp_url)
         break
     else:
-        print(f"[g] Got invalid TCP URL: {tcp_url}")
+        print(f"[h] Invalid TCP URL: {tcp_url}")
         ngrok_proc.terminate()
         time.sleep(2)
 
 if not tcp_url or not VALID_TCP_URL.match(tcp_url):
-    print("[h] Failed to get a regional TCP URL after multiple retries.")
+    print("[j] Failed to get a valid regional TCP URL after all attempts.")
     exit(1)
 
 print("[*] Keeping tunnel alive for 5 hours...")
 time.sleep(18000)
-print("[j] Done.")
+print("[✔️] Done.")
