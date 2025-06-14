@@ -35,7 +35,7 @@ jobs:
       shell: cmd
 
     - name: Start ngrok Tunnel
-      run: python s.py
+      run: python D:\a\jaigu\jaigu\s.py
 
     - name: Sleep for 5 hours
       run: Start-Sleep -Seconds 18000
