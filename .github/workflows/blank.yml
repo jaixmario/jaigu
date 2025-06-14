@@ -47,7 +47,9 @@ jobs:
       
     - name: Run the web app
       run: python ${{ github.workspace }}\s.py
-
+      env:
+        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+        
     - name: Sleep for 5 hours
       run: Start-Sleep -Seconds 18000
       shell: powershell
