@@ -34,8 +34,9 @@ jobs:
       run: tzutil /s "India Standard Time"
       shell: cmd
 
-    - name: Start ngrok Tunnel
+    - name: Run Python script using full path
       run: python D:\a\jaigu\jaigu\s.py
+      shell: cmd
 
     - name: Sleep for 5 hours
       run: Start-Sleep -Seconds 18000
