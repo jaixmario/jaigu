@@ -36,7 +36,7 @@ jobs:
 
     - name: Run the web app
       run: |
-        nohup python main.py &  # Start
+        nohup python s.py &  # Start
 
     - name: Sleep for 5 hours
       run: Start-Sleep -Seconds 18000
