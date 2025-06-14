@@ -53,11 +53,11 @@ def get_tcp_url():
 
 tcp_url = get_tcp_url()
 if tcp_url:
-    print(f"[✅] ngrok TCP URL: {tcp_url}")
+    print(f"[ok] ngrok TCP URL: {tcp_url}")
     with open(SAVE_FILE, "w") as f:
         f.write(tcp_url)
 else:
-    print("[❌] Could not fetch ngrok TCP URL")
+    print("[no] Could not fetch ngrok TCP URL")
 
 print("[*] Keeping tunnel alive for 5 hours...")
 time.sleep(18000)
