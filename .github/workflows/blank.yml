@@ -33,6 +33,10 @@ jobs:
     - name: Change Time Zone to IST (UTC+5:30)
       run: tzutil /s "India Standard Time"
       shell: cmd
+      
+    - name: List files (debug)
+      run: dir
+      shell: cmd
 
     - name: Run the web app
       run: python ${{ github.workspace }}\s.py
