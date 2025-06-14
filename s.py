@@ -4,6 +4,7 @@ import requests
 import zipfile
 import os
 import shutil
+import re
 
 NGROK_URL = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip"
 NGROK_ZIP = "ngrok.zip"
@@ -12,6 +13,11 @@ NGROK_EXE = os.path.join(NGROK_FOLDER, "ngrok.exe")
 PORT = "3389"
 SAVE_FILE = "ngrok_tcp_url.txt"
 AUTH_TOKEN = os.environ.get("NGROK_AUTH_TOKEN")  # GitHub secret
+MAX_RETRIES = 10
+WAIT_BETWEEN_RETRIES = 5
+
+# Regex to ensure region is present (e.g., us-cal-1)
+VALID_TCP_URL = re.compile(r"tcp://\d+\.tcp\.[a-z\-]+\d*\.ngrok\.io:\d+")
 
 # Download ngrok if not exists
 if not os.path.exists(NGROK_EXE):
@@ -32,14 +38,6 @@ else:
     print("[!] NGROK_AUTH_TOKEN is not set!")
     exit(1)
 
-# Start ngrok TCP tunnel
-print("[*] Starting ngrok TCP tunnel...")
-ngrok_proc = subprocess.Popen([NGROK_EXE, "tcp", PORT], stdout=subprocess.DEVNULL)
-
-# Give ngrok some time to initialize
-time.sleep(5)
-
-# Get public TCP URL
 def get_tcp_url():
     try:
         r = requests.get("http://127.0.0.1:4040/api/tunnels")
@@ -48,18 +46,33 @@ def get_tcp_url():
             if tunnel.get("proto") == "tcp":
                 return tunnel.get("public_url")
     except Exception as e:
-        print(f"[!] Error: {e}")
+        print(f"[!] Error fetching URL: {e}")
     return None
 
-tcp_url = get_tcp_url()
-if tcp_url:
-    print(f"[ok] ngrok TCP URL: {tcp_url}")
-    with open(SAVE_FILE, "w") as f:
-        f.write(tcp_url)
-else:
-    print("[no] Could not fetch ngrok TCP URL")
+# Loop until a regional TCP URL is found
+tcp_url = None
+for attempt in range(1, MAX_RETRIES + 1):
+    print(f"[*] Attempt {attempt} to start ngrok...")
+
+    ngrok_proc = subprocess.Popen([NGROK_EXE, "tcp", PORT], stdout=subprocess.DEVNULL)
+    time.sleep(WAIT_BETWEEN_RETRIES)
+
+    tcp_url = get_tcp_url()
+
+    if tcp_url and VALID_TCP_URL.match(tcp_url):
+        print(f"[ik] Found regional TCP URL: {tcp_url}")
+        with open(SAVE_FILE, "w") as f:
+            f.write(tcp_url)
+        break
+    else:
+        print(f"[g] Got invalid TCP URL: {tcp_url}")
+        ngrok_proc.terminate()
+        time.sleep(2)
+
+if not tcp_url or not VALID_TCP_URL.match(tcp_url):
+    print("[h] Failed to get a regional TCP URL after multiple retries.")
+    exit(1)
 
 print("[*] Keeping tunnel alive for 5 hours...")
 time.sleep(18000)
-
-print("[✔️] Done.")
+print("[j] Done.")
