@@ -33,23 +33,10 @@ jobs:
     - name: Change Time Zone to IST (UTC+5:30)
       run: tzutil /s "India Standard Time"
       shell: cmd
-      
-    - name: List files (debug)
-      run: dir
-      shell: cmd
-      
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      
-      
-    - name: Run the web app
-      run: pip install requests
-      
-    - name: Run the web app
-      run: python ${{ github.workspace }}\s.py
-      env:
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-        
+
+    - name: Start ngrok Tunnel
+      run: .\ngrok\ngrok.exe tcp 3389
+
     - name: Sleep for 5 hours
       run: Start-Sleep -Seconds 18000
       shell: powershell
